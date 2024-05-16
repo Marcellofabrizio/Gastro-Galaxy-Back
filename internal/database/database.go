@@ -104,6 +104,26 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
+func (s *service) Insert(name string, description string, url string, categoryId int) (int, error) {
+
+	stmt := `INSERT INTO recipe (name, description, url, categoryId)
+	VALUES(?,?,?,?)`
+
+	result, err := s.db.Exec(stmt, name, description, url, categoryId)
+
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
+}
+
 // Close closes the database connection.
 // It logs a message indicating the disconnection from the specific database.
 // If the connection is successfully closed, it returns nil.
