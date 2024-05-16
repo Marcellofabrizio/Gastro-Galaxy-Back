@@ -20,11 +20,10 @@ type Server struct {
 
 func NewServer() *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
-	db := database.New()
 	NewServer := &Server{
 		port: port,
 
-		db: db,
+		db: database.New(),
 	}
 
 	// Declare Server config
