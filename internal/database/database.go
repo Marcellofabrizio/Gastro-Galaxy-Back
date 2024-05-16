@@ -22,6 +22,8 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	Insert(name string, description string, url string, categoryId int) (int, error)
 }
 
 type service struct {
@@ -106,19 +108,15 @@ func (s *service) Health() map[string]string {
 
 func (s *service) Insert(name string, description string, url string, categoryId int) (int, error) {
 
-	stmt := `INSERT INTO recipe (name, description, url, categoryId)
-	VALUES(?,?,?,?)`
+	log.Printf("Inserting new recipe")
+	stmt := `INSERT INTO recipe (name, description, imageurl, category_id) VALUES($1,$2,$3,$4) RETURNING id`
 
-	result, err := s.db.Exec(stmt, name, description, url, categoryId)
+	var id int
 
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := result.LastInsertId()
+	err := s.db.QueryRow(stmt, name, description, url, categoryId).Scan(&id)
 
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 
 	return int(id), nil
