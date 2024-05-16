@@ -23,7 +23,7 @@ type Service interface {
 	// It returns an error if the connection cannot be closed.
 	Close() error
 
-	Insert(name string, description string, url string, categoryId int) (int, error)
+	InsertRecipe(name string, description string, url string, categoryId int) (int, error)
 }
 
 type service struct {
@@ -106,7 +106,7 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
-func (s *service) Insert(name string, description string, url string, categoryId int) (int, error) {
+func (s *service) InsertRecipe(name string, description string, url string, categoryId int) (int, error) {
 
 	log.Printf("Inserting new recipe")
 	stmt := `INSERT INTO recipe (name, description, imageurl, category_id) VALUES($1,$2,$3,$4) RETURNING id`

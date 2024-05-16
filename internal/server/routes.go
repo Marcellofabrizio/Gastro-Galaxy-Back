@@ -51,7 +51,7 @@ func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	id, err := s.db.Insert(recipe.Name, recipe.Description, recipe.Url, recipe.CategoryId)
+	id, err := s.db.InsertRecipe(recipe.Name, recipe.Description, recipe.Url, recipe.CategoryId)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
