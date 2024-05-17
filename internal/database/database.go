@@ -24,6 +24,7 @@ type Service interface {
 	Close() error
 
 	InsertRecipe(name string, description string, url string, categoryId int) (int, error)
+	InsertIngredient(name string, amount string, url string, isAvailable bool) (int, error)
 }
 
 type service struct {
@@ -114,6 +115,22 @@ func (s *service) InsertRecipe(name string, description string, url string, cate
 	var id int
 
 	err := s.db.QueryRow(stmt, name, description, url, categoryId).Scan(&id)
+
+	if err != nil {
+		return -1, err
+	}
+
+	return int(id), nil
+}
+
+func (s *service) InsertIngredient(name string, amount string, url string, isAvailable bool) (int, error) {
+
+	log.Printf("Inserting new ingredient")
+	stmt := `INSERT INTO ingredient (name, amount, imageurl, isavailable) VALUES($1,$2,$3,$4) RETURNING id`
+
+	var id int
+
+	err := s.db.QueryRow(stmt, name, amount, url, isAvailable).Scan(&id)
 
 	if err != nil {
 		return -1, err

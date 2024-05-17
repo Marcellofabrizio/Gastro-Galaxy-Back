@@ -21,6 +21,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.Post("/recipe", s.insertRecipeHandler)
 
+	r.Post("/ingredient", s.insertIngredientHandler)
+
 	return r
 }
 
@@ -59,4 +61,24 @@ func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Recipe id: %d", id)
+}
+
+func (s *Server) insertIngredientHandler(w http.ResponseWriter, r *http.Request) {
+
+	var ingredient models.Ingedient
+
+	err := json.NewDecoder(r.Body).Decode(&ingredient)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	id, err := s.db.InsertIngredient(ingredient.Name, ingredient.Amount, ingredient.Url, ingredient.IsAvailable)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Ingredient id: %d", id)
 }
