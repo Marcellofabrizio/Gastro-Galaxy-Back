@@ -23,7 +23,7 @@ type Service interface {
 	// It returns an error if the connection cannot be closed.
 	Close() error
 
-	InsertRecipe(name string, description string, url string, categoryId int) (int, error)
+	InsertRecipe(name string, description string, url string, categoryId int, ingredientIds []int) (int, error)
 	InsertIngredient(name string, amount string, url string, isAvailable bool) (int, error)
 }
 
@@ -107,7 +107,7 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
-func (s *service) InsertRecipe(name string, description string, url string, categoryId int) (int, error) {
+func (s *service) InsertRecipe(name string, description string, url string, categoryId int, ingredientIds []int) (int, error) {
 
 	log.Printf("Inserting new recipe")
 	stmt := `INSERT INTO recipe (name, description, imageurl, category_id) VALUES($1,$2,$3,$4) RETURNING id`
@@ -118,6 +118,15 @@ func (s *service) InsertRecipe(name string, description string, url string, cate
 
 	if err != nil {
 		return -1, err
+	}
+
+	for _, ingredientId := range ingredientIds {
+		stmt := `INSERT INTO ingredient_recipe (ingredient_id, recipe_id) VALUES($1,$2)`
+		_, err = s.db.Exec(stmt, ingredientId, id)
+
+		if err != nil {
+			return int(id), err
+		}
 	}
 
 	return int(id), nil

@@ -45,15 +45,20 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
-	var recipe models.Recipe
+	var recipeDto models.RecipeDto
 
-	err := json.NewDecoder(r.Body).Decode(&recipe)
-
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&recipeDto); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	id, err := s.db.InsertRecipe(recipe.Name, recipe.Description, recipe.Url, recipe.CategoryId)
+	recipe := models.Recipe{
+		Name:        recipeDto.Name,
+		Url:         recipeDto.Url,
+		CategoryId:  recipeDto.CategoryId,
+		Description: recipeDto.Description,
+	}
+
+	id, err := s.db.InsertRecipe(recipe.Name, recipe.Description, recipe.Url, recipe.CategoryId, recipeDto.IngedientIds)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
