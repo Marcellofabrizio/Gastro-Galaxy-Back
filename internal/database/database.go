@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"gastro-galaxy-back/internal/models"
 	"log"
 	"os"
 	"strconv"
@@ -24,6 +25,7 @@ type Service interface {
 	Close() error
 
 	InsertRecipe(name string, description string, url string, categoryId int, ingredientIds []int) (int, error)
+	GetRecipes(category string) ([]models.Recipe, error)
 	InsertIngredient(name string, amount string, url string, isAvailable bool) (int, error)
 }
 
@@ -130,6 +132,47 @@ func (s *service) InsertRecipe(name string, description string, url string, cate
 	}
 
 	return int(id), nil
+}
+
+func (s *service) GetRecipes(category string) ([]models.Recipe, error) {
+
+	baseQuery := `
+        SELECT r.id, r.name, r.description, r.imageurl, r.category_id
+        FROM recipe r
+    `
+	var rows *sql.Rows
+	var err error
+
+	if category != "" {
+		query := baseQuery + `
+        JOIN category c ON r.category_id = c.id
+        WHERE c.name = $1
+        `
+		rows, err = s.db.Query(query, category)
+	} else {
+		rows, err = s.db.Query(baseQuery)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var recipes []models.Recipe
+
+	for rows.Next() {
+		var recipe models.Recipe
+		if err := rows.Scan(&recipe.Id, &recipe.Name, &recipe.Description, &recipe.Url, &recipe.CategoryId); err != nil {
+			return nil, err
+		}
+		recipes = append(recipes, recipe)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return recipes, nil
 }
 
 func (s *service) InsertIngredient(name string, amount string, url string, isAvailable bool) (int, error) {

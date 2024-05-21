@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gastro-galaxy-back/internal/models"
+	"io"
 	"log"
 	"net/http"
 
@@ -20,6 +21,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Get("/health", s.healthHandler)
 
 	r.Post("/recipe", s.insertRecipeHandler)
+
+	r.Get("/recipes", s.getRecipesHandler)
 
 	r.Post("/ingredient", s.insertIngredientHandler)
 
@@ -66,6 +69,37 @@ func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Recipe id: %d", id)
+}
+
+func (s *Server) getRecipesHandler(w http.ResponseWriter, r *http.Request) {
+
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var data map[string]interface{}
+
+	if err := json.Unmarshal(body, &data); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	category := data["category"]
+
+	recipes, err := s.db.GetRecipes(category.(string))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(recipes)
 }
 
 func (s *Server) insertIngredientHandler(w http.ResponseWriter, r *http.Request) {
