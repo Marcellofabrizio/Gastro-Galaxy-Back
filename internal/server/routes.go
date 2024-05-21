@@ -64,7 +64,7 @@ func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Recipe id: %d", id)
 }
 
@@ -84,6 +84,6 @@ func (s *Server) insertIngredientHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Ingredient id: %d", id)
 }
