@@ -7,6 +7,7 @@ INSERT INTO category (id, name) VALUES (1, 'Pizzas');
 INSERT INTO Category (id, name) VALUES (2, 'Hamburgers');
 INSERT INTO Category (id, name) VALUES (3, 'Massas');
 INSERT INTO Category (id, name) VALUES (4, 'Bolos');
+INSERT INTO Category (id, name) VALUES (5, 'Brasileira');
 
 CREATE TABLE recipe (
   id SERIAL PRIMARY KEY,
