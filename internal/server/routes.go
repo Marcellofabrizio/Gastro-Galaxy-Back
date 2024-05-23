@@ -86,14 +86,20 @@ func (s *Server) getRecipesHandler(w http.ResponseWriter, r *http.Request) {
 
 	var data map[string]interface{}
 
-	if err := json.Unmarshal(body, &data); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	var category string
+
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &data); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		category = data["category"].(string)
+	} else {
+		category = ""
 	}
 
-	category := data["category"]
-
-	recipes, err := s.db.GetRecipes(category.(string))
+	recipes, err := s.db.GetRecipes(category)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
