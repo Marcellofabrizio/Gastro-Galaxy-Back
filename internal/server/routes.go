@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,9 +21,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.Get("/health", s.healthHandler)
 
-	r.Post("/recipe", s.insertRecipeHandler)
-
 	r.Get("/recipes", s.getRecipesHandler)
+
+	r.Get("/recipe/{recipeId}", s.getRecipeWithIngredients)
+
+	r.Post("/recipe", s.insertRecipeHandler)
 
 	r.Post("/ingredient", s.insertIngredientHandler)
 
@@ -48,7 +51,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
-	var recipeDto models.RecipeDto
+	var recipeDto models.RecipeInputDto
 
 	if err := json.NewDecoder(r.Body).Decode(&recipeDto); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -100,6 +103,28 @@ func (s *Server) getRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(recipes)
+}
+
+func (s *Server) getRecipeWithIngredients(w http.ResponseWriter, r *http.Request) {
+
+	recipeId, err := strconv.Atoi(r.PathValue("recipeId"))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	recipe, err := s.db.GetRecipeWithIngredients(recipeId)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(recipe)
+
 }
 
 func (s *Server) insertIngredientHandler(w http.ResponseWriter, r *http.Request) {
