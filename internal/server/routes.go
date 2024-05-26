@@ -19,22 +19,45 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.Get("/", s.HelloWorldHandler)
 
-	r.Get("/health", s.healthHandler)
+	r.Get("/health", s.HealthHandler)
 
-	r.Get("/recipes", s.getRecipesHandler)
+	r.Get("/recipes", s.GetRecipesHandler)
 
-	r.Get("/recipe/{recipeId}", s.getRecipeWithIngredients)
+	r.Get("/recipe/{recipeId}", s.GetRecipeWithIngredientsHandler)
 
-	r.Post("/recipe", s.insertRecipeHandler)
+	r.Put("/recipe/{recipeId}", s.PutRecipeHandler)
 
-	r.Post("/ingredient", s.insertIngredientHandler)
+	r.Post("/recipe", s.InsertRecipeHandler)
+
+	r.Post("/ingredient", s.InsertIngredientHandler)
+
+	r.Get("/ingredients", s.GetIngredientsHandler)
 
 	return r
 }
 
+func parseRequestBody(body io.ReadCloser) (map[string]interface{}, error) {
+	defer body.Close()
+	bodyBytes, err := io.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(bodyBytes) == 0 {
+		return nil, nil
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
 func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	resp := make(map[string]string)
-	resp["message"] = "Hello World"
+	resp["message"] = "Gastro Galaxy Back-End"
 
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
@@ -44,17 +67,18 @@ func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(jsonResp)
 }
 
-func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	jsonResp, _ := json.Marshal(s.db.Health())
 	_, _ = w.Write(jsonResp)
 }
 
-func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) InsertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	var recipeDto models.RecipeInputDto
 
 	if err := json.NewDecoder(r.Body).Decode(&recipeDto); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	recipe := models.Recipe{
@@ -68,35 +92,22 @@ func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Recipe id: %d", id)
 }
 
-func (s *Server) getRecipesHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetRecipesHandler(w http.ResponseWriter, r *http.Request) {
 
-	body, err := io.ReadAll(r.Body)
+	requestData, err := parseRequestBody(r.Body)
 
-	if err != nil {
+	category, ok := requestData["category"].(string)
+
+	if !ok {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
-	defer r.Body.Close()
-
-	var data map[string]interface{}
-
-	var category string
-
-	if len(body) > 0 {
-		if err := json.Unmarshal(body, &data); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		category = data["category"].(string)
-	} else {
-		category = ""
 	}
 
 	recipes, err := s.db.GetRecipes(category)
@@ -111,7 +122,7 @@ func (s *Server) getRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(recipes)
 }
 
-func (s *Server) getRecipeWithIngredients(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetRecipeWithIngredientsHandler(w http.ResponseWriter, r *http.Request) {
 
 	recipeId, err := strconv.Atoi(r.PathValue("recipeId"))
 
@@ -127,13 +138,68 @@ func (s *Server) getRecipeWithIngredients(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if recipe == nil {
+		http.Error(w, "Recipe not found", http.StatusNotFound)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(recipe)
 
 }
 
-func (s *Server) insertIngredientHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) PutRecipeHandler(w http.ResponseWriter, r *http.Request) {
+
+	recipeId, err := strconv.Atoi(r.PathValue("recipeId"))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	recipe, err := s.db.GetRecipeWithIngredients(recipeId)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if recipe == nil {
+		http.Error(w, "Recipe not found", http.StatusNotFound)
+		return
+	}
+
+	var recipeDto models.RecipeInputDto
+
+	if err := json.NewDecoder(r.Body).Decode(&recipeDto); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	updatedRecipe := models.Recipe{
+		Name:        recipeDto.Name,
+		Url:         recipeDto.Url,
+		Description: recipeDto.Description,
+	}
+
+	if err := s.db.UpdateRecipe(recipeId, updatedRecipe.Name, updatedRecipe.Description, updatedRecipe.Url); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := s.db.InsertRecipeIngredient(recipeId, recipeDto.IngedientIds); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "Recipe UPDATED")
+
+}
+
+func (s *Server) InsertIngredientHandler(w http.ResponseWriter, r *http.Request) {
 
 	var ingredient models.Ingedient
 
@@ -151,4 +217,17 @@ func (s *Server) insertIngredientHandler(w http.ResponseWriter, r *http.Request)
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Ingredient id: %d", id)
+}
+
+func (s *Server) GetIngredientsHandler(w http.ResponseWriter, r *http.Request) {
+
+	ingredients, err := s.db.GetIngredients()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(ingredients)
 }
