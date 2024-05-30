@@ -36,25 +36,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	return r
 }
 
-func parseRequestBody(body io.ReadCloser) (map[string]interface{}, error) {
-	defer body.Close()
-	bodyBytes, err := io.ReadAll(body)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(bodyBytes) == 0 {
-		return nil, nil
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal(bodyBytes, &data); err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
 func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	resp := make(map[string]string)
 	resp["message"] = "Gastro Galaxy Back-End"
@@ -100,14 +81,26 @@ func (s *Server) InsertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) GetRecipesHandler(w http.ResponseWriter, r *http.Request) {
-
-	requestData, err := parseRequestBody(r.Body)
-
-	category, ok := requestData["category"].(string)
-
-	if !ok {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+	defer r.Body.Close()
+
+	var data map[string]interface{}
+
+	var category string
+
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &data); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		category = data["category"].(string)
+	} else {
+		category = ""
 	}
 
 	recipes, err := s.db.GetRecipes(category)
@@ -116,7 +109,6 @@ func (s *Server) GetRecipesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(recipes)
