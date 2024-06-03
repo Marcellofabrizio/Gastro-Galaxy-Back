@@ -1,6 +1,6 @@
 # Project gastro-galaxy-back
 
-One Paragraph of project description goes here
+Back-End application for the Gastro Galaxy app.
 
 ## Getting Started
 

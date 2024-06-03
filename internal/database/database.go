@@ -25,9 +25,12 @@ type Service interface {
 	Close() error
 
 	InsertRecipe(name string, description string, longDescription string, url string, categoryId int, ingredientIds []int) (int, error)
+	UpdateRecipe(id int, name string, description string, url string) error
+	InsertRecipeIngredient(recipeId int, ingredientIds []int) error
 	GetRecipes(category string) ([]models.Recipe, error)
 	GetRecipeWithIngredients(recipeId int) (*models.RecipeWithIngredientsDto, error)
 	InsertIngredient(name string, amount string, url string, isAvailable bool) (int, error)
+	GetIngredients() (*[]models.Ingedient, error)
 }
 
 type service struct {
@@ -130,6 +133,12 @@ func (s *service) InsertRecipe(name string, description string, longDescription 
 		if err != nil {
 			return int(id), err
 		}
+	}
+
+	err = s.InsertRecipeIngredient(id, ingredientIds)
+
+	if err != nil {
+		return int(id), err
 	}
 
 	return int(id), nil
@@ -242,6 +251,69 @@ func (s *service) InsertIngredient(name string, amount string, url string, isAva
 	}
 
 	return int(id), nil
+}
+
+func (s *service) UpdateRecipe(id int, name string, description string, url string) error {
+
+	updateRecipeQuery := `
+		UPDATE recipe 
+		SET name = $2, description = $3, imageurl = $4
+		WHERE id = $1
+	`
+
+	_, err := s.db.Exec(updateRecipeQuery, id, name, description, url)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) InsertRecipeIngredient(recipeId int, ingredientIds []int) error {
+
+	for _, ingredientId := range ingredientIds {
+		stmt := `INSERT INTO ingredient_recipe (ingredient_id, recipe_id) VALUES($1,$2)`
+		_, err := s.db.Exec(stmt, ingredientId, recipeId)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *service) GetIngredients() (*[]models.Ingedient, error) {
+
+	getIngredientsQuery := `SELECT i.id, i.name, i.amount, i.imageUrl, i.isavailable FROM ingredient i`
+
+	rows, err := s.db.Query(getIngredientsQuery)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var ingredients []models.Ingedient
+
+	for rows.Next() {
+
+		var ingredient models.Ingedient
+
+		if err := rows.Scan(&ingredient.Id, &ingredient.Name, &ingredient.Amount, &ingredient.Url, &ingredient.IsAvailable); err != nil {
+			return nil, err
+		}
+
+		ingredients = append(ingredients, ingredient)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &ingredients, err
 }
 
 // Close closes the database connection.
