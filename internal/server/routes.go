@@ -58,13 +58,14 @@ func (s *Server) insertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	recipe := models.Recipe{
-		Name:        recipeDto.Name,
-		Url:         recipeDto.Url,
-		CategoryId:  recipeDto.CategoryId,
-		Description: recipeDto.Description,
+		Name:            recipeDto.Name,
+		Url:             recipeDto.Url,
+		CategoryId:      recipeDto.CategoryId,
+		Description:     recipeDto.Description,
+		LongDescription: recipeDto.LongDescription,
 	}
 
-	id, err := s.db.InsertRecipe(recipe.Name, recipe.Description, recipe.Url, recipe.CategoryId, recipeDto.IngedientIds)
+	id, err := s.db.InsertRecipe(recipe.Name, recipe.Description, recipe.LongDescription, recipe.Url, recipe.CategoryId, recipeDto.IngedientIds)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

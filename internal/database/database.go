@@ -24,7 +24,7 @@ type Service interface {
 	// It returns an error if the connection cannot be closed.
 	Close() error
 
-	InsertRecipe(name string, description string, url string, categoryId int, ingredientIds []int) (int, error)
+	InsertRecipe(name string, description string, longDescription string, url string, categoryId int, ingredientIds []int) (int, error)
 	GetRecipes(category string) ([]models.Recipe, error)
 	GetRecipeWithIngredients(recipeId int) (*models.RecipeWithIngredientsDto, error)
 	InsertIngredient(name string, amount string, url string, isAvailable bool) (int, error)
@@ -110,14 +110,14 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
-func (s *service) InsertRecipe(name string, description string, url string, categoryId int, ingredientIds []int) (int, error) {
+func (s *service) InsertRecipe(name string, description string, longDescription string, url string, categoryId int, ingredientIds []int) (int, error) {
 
 	log.Printf("Inserting new recipe")
-	stmt := `INSERT INTO recipe (name, description, imageurl, category_id) VALUES($1,$2,$3,$4) RETURNING id`
+	stmt := `INSERT INTO recipe (name, description, long_description, imageurl, category_id) VALUES($1,$2,$3,$4,$5) RETURNING id`
 
 	var id int
 
-	err := s.db.QueryRow(stmt, name, description, url, categoryId).Scan(&id)
+	err := s.db.QueryRow(stmt, name, description, longDescription, url, categoryId).Scan(&id)
 
 	if err != nil {
 		return -1, err
@@ -138,7 +138,7 @@ func (s *service) InsertRecipe(name string, description string, url string, cate
 func (s *service) GetRecipes(category string) ([]models.Recipe, error) {
 
 	baseQuery := `
-        SELECT r.id, r.name, r.description, r.imageurl, r.category_id
+        SELECT r.id, r.name, r.description, r.long_description, r.imageurl, r.category_id
         FROM recipe r
     `
 	var rows *sql.Rows
@@ -163,7 +163,7 @@ func (s *service) GetRecipes(category string) ([]models.Recipe, error) {
 
 	for rows.Next() {
 		var recipe models.Recipe
-		if err := rows.Scan(&recipe.Id, &recipe.Name, &recipe.Description, &recipe.Url, &recipe.CategoryId); err != nil {
+		if err := rows.Scan(&recipe.Id, &recipe.Name, &recipe.Description, &recipe.LongDescription, &recipe.Url, &recipe.CategoryId); err != nil {
 			return nil, err
 		}
 		recipes = append(recipes, recipe)
@@ -181,14 +181,14 @@ func (s *service) GetRecipeWithIngredients(recipeId int) (*models.RecipeWithIngr
 	log.Printf("Getting recipe with ingredients")
 
 	recipeQuery := `
-		SELECT r.id, r.name, r.description, r.imageurl, r.category_id
+		SELECT r.id, r.name, r.description, r.long_description, r.imageurl, r.category_id
 		FROM recipe r
 		WHERE r.id = $1
 	`
 
 	var recipe models.Recipe
 
-	err := s.db.QueryRow(recipeQuery, recipeId).Scan(&recipe.Id, &recipe.Name, &recipe.Description, &recipe.Url, &recipe.CategoryId)
+	err := s.db.QueryRow(recipeQuery, recipeId).Scan(&recipe.Id, &recipe.Name, &recipe.Description, &recipe.LongDescription, &recipe.Url, &recipe.CategoryId)
 
 	if err != nil {
 		return nil, err
@@ -222,8 +222,8 @@ func (s *service) GetRecipeWithIngredients(recipeId int) (*models.RecipeWithIngr
 	}
 
 	return &models.RecipeWithIngredientsDto{
-		Recipe:     recipe,
-		Ingedients: ingredients,
+		Recipe:      recipe,
+		Ingredients: ingredients,
 	}, nil
 
 }
