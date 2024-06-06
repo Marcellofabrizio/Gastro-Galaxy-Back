@@ -15,7 +15,7 @@ type RecipeInputDto struct {
 	Url             string `json:url`
 	Description     string `json:description`
 	LongDescription string `json:longDescription`
-	IngedientIds    []int  `json:ingedientIds`
+	IngredientIds   []int  `json:ingredientIds`
 }
 
 type RecipeWithIngredientsDto struct {

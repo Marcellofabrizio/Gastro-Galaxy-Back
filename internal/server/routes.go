@@ -70,7 +70,7 @@ func (s *Server) InsertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		LongDescription: recipeDto.LongDescription,
 	}
 
-	id, err := s.db.InsertRecipe(recipe.Name, recipe.Description, recipe.LongDescription, recipe.Url, recipe.CategoryId, recipeDto.IngedientIds)
+	id, err := s.db.InsertRecipe(recipe.Name, recipe.Description, recipe.LongDescription, recipe.Url, recipe.CategoryId, recipeDto.IngredientIds)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -84,6 +84,7 @@ func (s *Server) InsertRecipeHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) GetRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		fmt.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -95,6 +96,7 @@ func (s *Server) GetRecipesHandler(w http.ResponseWriter, r *http.Request) {
 
 	if len(body) > 0 {
 		if err := json.Unmarshal(body, &data); err != nil {
+			fmt.Println(err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -107,6 +109,7 @@ func (s *Server) GetRecipesHandler(w http.ResponseWriter, r *http.Request) {
 	recipes, err := s.db.GetRecipes(category)
 
 	if err != nil {
+		fmt.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -181,7 +184,7 @@ func (s *Server) PutRecipeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.db.InsertRecipeIngredient(recipeId, recipeDto.IngedientIds); err != nil {
+	if err := s.db.InsertRecipeIngredient(recipeId, recipeDto.IngredientIds); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 

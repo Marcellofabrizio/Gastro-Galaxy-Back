@@ -13,6 +13,7 @@ CREATE TABLE recipe (
   id SERIAL PRIMARY KEY,
   name TEXT,
   description TEXT,
+  long_description TEXT,
   imageUrl TEXT,
   category_id INTEGER,
   CONSTRAINT fk_category
