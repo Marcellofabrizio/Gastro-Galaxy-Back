@@ -1,3 +1,9 @@
+# Developed by
+
+LEONARDO BITENCOURT LIMA DA SILVA;\
+MARCELLO FABRIZIO;\
+DEIVID CASTAGNA CARVALHO\
+
 # Project gastro-galaxy-back
 
 Back-End application for the Gastro Galaxy app.
